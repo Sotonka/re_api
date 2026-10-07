@@ -14,10 +14,16 @@ class TableRepository {
       '''),
     );
 
-    return result.map((row) => row.toColumnMap()).toList();
+    return result
+        .map(
+          (row) => _jsonSafeRow(row.toColumnMap()),
+        )
+        .toList();
   }
 
-  Future<Map<String, dynamic>?> getByRdate(String rdate) async {
+  Future<Map<String, dynamic>?> getByRdate(
+    String rdate,
+  ) async {
     final result = await connection.execute(
       Sql.named('''
         SELECT *
@@ -33,7 +39,9 @@ class TableRepository {
       return null;
     }
 
-    return result.first.toColumnMap();
+    return _jsonSafeRow(
+      result.first.toColumnMap(),
+    );
   }
 
   Future<List<Map<String, dynamic>>> getByRange({
@@ -54,7 +62,11 @@ class TableRepository {
       },
     );
 
-    return result.map((row) => row.toColumnMap()).toList();
+    return result
+        .map(
+          (row) => _jsonSafeRow(row.toColumnMap()),
+        )
+        .toList();
   }
 
   Future<Map<String, dynamic>> upsert({
@@ -299,10 +311,14 @@ class TableRepository {
       },
     );
 
-    return result.first.toColumnMap();
+    return _jsonSafeRow(
+      result.first.toColumnMap(),
+    );
   }
 
-  Future<bool> delete(String rdate) async {
+  Future<bool> delete(
+    String rdate,
+  ) async {
     final result = await connection.execute(
       Sql.named('''
         DELETE FROM "tables"
@@ -314,5 +330,25 @@ class TableRepository {
     );
 
     return result.affectedRows > 0;
+  }
+
+  Map<String, dynamic> _jsonSafeRow(
+    Map<String, dynamic> row,
+  ) {
+    return row.map(
+      (key, value) {
+        if (value is DateTime) {
+          return MapEntry(
+            key,
+            value.toIso8601String(),
+          );
+        }
+
+        return MapEntry(
+          key,
+          value,
+        );
+      },
+    );
   }
 }
